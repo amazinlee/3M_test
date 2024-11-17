@@ -1,8 +1,7 @@
 //+------------------------------------------------------------------+
-//|                                                   ExpertMACD.mq5 |
+//|                                    ExpertMAPSARSizeOptimized.mq5 |
 //|                             Copyright 2000-2024, MetaQuotes Ltd. |
 //|                                             https://www.mql5.com |
-//v2
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2000-2024, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
@@ -11,22 +10,27 @@
 //| Include                                                          |
 //+------------------------------------------------------------------+
 #include <Expert\Expert.mqh>
-#include <Expert\Signal\SignalMACD.mqh>
-#include <Expert\Trailing\TrailingNone.mqh>
-#include <Expert\Money\MoneyNone.mqh>
+#include <Expert\Signal\SignalMA.mqh>
+#include <Expert\Trailing\TrailingParabolicSAR.mqh>
+#include <Expert\Money\MoneySizeOptimized.mqh>
 //+------------------------------------------------------------------+
 //| Inputs                                                           |
 //+------------------------------------------------------------------+
 //--- inputs for expert
-input string Inp_Expert_Title            ="ExpertMACD";
-int          Expert_MagicNumber          =10981;
-bool         Expert_EveryTick            =false;
+input string             Inp_Expert_Title                      ="ExpertMAPSARSizeOptimized";
+int                      Expert_MagicNumber                    =27893;
+bool                     Expert_EveryTick                      =false;
 //--- inputs for signal
-input int    Inp_Signal_MACD_PeriodFast  =12;
-input int    Inp_Signal_MACD_PeriodSlow  =24;
-input int    Inp_Signal_MACD_PeriodSignal=9;
-input int    Inp_Signal_MACD_TakeProfit  =50;
-input int    Inp_Signal_MACD_StopLoss    =20;
+input int                Inp_Signal_MA_Period                  =12;
+input int                Inp_Signal_MA_Shift                   =6;
+input ENUM_MA_METHOD     Inp_Signal_MA_Method                  =MODE_SMA;
+input ENUM_APPLIED_PRICE Inp_Signal_MA_Applied                 =PRICE_CLOSE;
+//--- inputs for trailing
+input double             Inp_Trailing_ParabolicSAR_Step        =0.02;
+input double             Inp_Trailing_ParabolicSAR_Maximum     =0.2;
+//--- inputs for money
+input double             Inp_Money_SizeOptimized_DecreaseFactor=3.0;
+input double             Inp_Money_SizeOptimized_Percent       =10.0;
 //+------------------------------------------------------------------+
 //| Global expert object                                             |
 //+------------------------------------------------------------------+
@@ -45,7 +49,7 @@ int OnInit(void)
       return(-1);
      }
 //--- Creation of signal object
-   CSignalMACD *signal=new CSignalMACD;
+   CSignalMA *signal=new CSignalMA;
    if(signal==NULL)
      {
       //--- failed
@@ -62,11 +66,10 @@ int OnInit(void)
       return(-3);
      }
 //--- Set signal parameters
-   signal.PeriodFast(Inp_Signal_MACD_PeriodFast);
-   signal.PeriodSlow(Inp_Signal_MACD_PeriodSlow);
-   signal.PeriodSignal(Inp_Signal_MACD_PeriodSignal);
-   signal.TakeLevel(Inp_Signal_MACD_TakeProfit);
-   signal.StopLevel(Inp_Signal_MACD_StopLoss);
+   signal.PeriodMA(Inp_Signal_MA_Period);
+   signal.Shift(Inp_Signal_MA_Shift);
+   signal.Method(Inp_Signal_MA_Method);
+   signal.Applied(Inp_Signal_MA_Applied);
 //--- Check signal parameters
    if(!signal.ValidationSettings())
      {
@@ -76,7 +79,7 @@ int OnInit(void)
       return(-4);
      }
 //--- Creation of trailing object
-   CTrailingNone *trailing=new CTrailingNone;
+   CTrailingPSAR *trailing=new CTrailingPSAR;
    if(trailing==NULL)
      {
       //--- failed
@@ -93,6 +96,8 @@ int OnInit(void)
       return(-6);
      }
 //--- Set trailing parameters
+   trailing.Step(Inp_Trailing_ParabolicSAR_Step);
+   trailing.Maximum(Inp_Trailing_ParabolicSAR_Maximum);
 //--- Check trailing parameters
    if(!trailing.ValidationSettings())
      {
@@ -102,7 +107,7 @@ int OnInit(void)
       return(-7);
      }
 //--- Creation of money object
-   CMoneyNone *money=new CMoneyNone;
+   CMoneySizeOptimized *money=new CMoneySizeOptimized;
    if(money==NULL)
      {
       //--- failed
@@ -119,6 +124,8 @@ int OnInit(void)
       return(-9);
      }
 //--- Set money parameters
+   money.DecreaseFactor(Inp_Money_SizeOptimized_DecreaseFactor);
+   money.Percent(Inp_Money_SizeOptimized_Percent);
 //--- Check money parameters
    if(!money.ValidationSettings())
      {
